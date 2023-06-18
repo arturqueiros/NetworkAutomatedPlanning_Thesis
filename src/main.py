@@ -551,7 +551,7 @@ def generations_creation(population_size: int, stop_Types: list[str], number_gen
         final_population = compute_population_data(final_population)
         rank_individuals(final_population)
         elite_individuals = get_elite(final_population, eliteSize)
-        best_individuals.append(get_best_individual(final_population[0]))
+        best_individuals.append(final_population[0])
         all_data(final_population, generation, data_file)
         generation_data = []
         for index in range(len(final_population)):
@@ -685,15 +685,6 @@ def results_data(best_individuals: list[Individual], best_individuals_file: Work
 
         # worksheet.cell(row=row, column=14, value=cov_data_plot(k, best_individuals))
     best_individuals_file.save(filename2)
-
-
-def get_best_individual(best_individual: Individual):
-    """all_best_individual = [(best_individual.individualStops, best_individual.value_cost_function, generation,
-                            best_individual.individual_pks, best_individual.individual_coverage, best_individual.num_anchor, best_individual.num_station,
-                            best_individual.num_halt, best_individual.num_signal, best_individual.num_level_crossing, best_individual.num_other,
-                            best_individual.get_Number_Active_Stops())]"""
-    all_best_individual = best_individual
-    return all_best_individual
 
 
 def cov_data_plot(generation: int, best_individuals: list[Individual]):
