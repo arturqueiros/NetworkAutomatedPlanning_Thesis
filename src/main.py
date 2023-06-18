@@ -156,22 +156,22 @@ class Individual:
         self.num_anchor = anchor
         self.num_level_crossing = level_crossing
         self.num_other = other
-        best_value = ((2 ** self.weight_station) / total_stops) + (
-                (1 ** self.weight_halt) / total_stops) + \
-                                   ((1 ** self.weight_anchor) / total_stops) + (
-                                           (0 ** self.weight_level_crossing) / total_stops) + \
-                                   ((0 ** self.weight_signal) / total_stops) + (
-                                           (0 ** self.weight_other) / total_stops) + \
+        best_value = ((2 * self.weight_station) / total_stops) + (
+                (1 * self.weight_halt) / total_stops) + \
+                                   ((1 * self.weight_anchor) / total_stops) + (
+                                           (0 * self.weight_level_crossing) / total_stops) + \
+                                   ((0 * self.weight_signal) / total_stops) + (
+                                           (0 * self.weight_other) / total_stops) + \
                                    (0 * self.weight_percent_below_min) + (
                                            0 * self.weight_percent_low_ref) + (
                                            0 * self.weight_extension)
 
-        self.value_cost_function = ((self.num_station ** self.weight_station) / total_stops) + (
-                (self.num_halt ** self.weight_halt) / total_stops) + \
-                                   ((self.num_anchor ** self.weight_anchor) / total_stops) + (
-                                           (self.num_level_crossing ** self.weight_level_crossing) / total_stops) + \
-                                   ((self.num_signal ** self.weight_signal) / total_stops) + (
-                                           (self.num_other ** self.weight_other) / total_stops) + \
+        self.value_cost_function = ((self.num_station * self.weight_station) / total_stops) + (
+                (self.num_halt * self.weight_halt) / total_stops) + \
+                                   ((self.num_anchor * self.weight_anchor) / total_stops) + (
+                                           (self.num_level_crossing * self.weight_level_crossing) / total_stops) + \
+                                   ((self.num_signal * self.weight_signal) / total_stops) + (
+                                           (self.num_other * self.weight_other) / total_stops) + \
                                    (below_min * self.weight_percent_below_min) + (
                                            low_ref * self.weight_percent_low_ref) + (
                                            extension * self.weight_extension)
@@ -614,7 +614,7 @@ def all_data(new_population: list[Individual], generation: int, all_data_file: W
         worksheet.cell(row=row, column=20, value=individual.weight_level_crossing)
         worksheet.cell(row=row, column=21, value=individual.num_other)
         worksheet.cell(row=row, column=22, value=individual.weight_other)
-        cost_function_formula = f'(((K{row} ^ L{row})/ B{row}) + ((M{row} ^ N{row}) / B{row}) + ((O{row} ^ P{row}) / B{row}) + ((Q{row} ^ R{row}) / B{row})  + ((S{row} ^ T{row}) / B{row}) + ((U{row} ^ V{row}) / B{row}) + (D{row} * E{row}) + (F{row} * G{row}) + (H{row} * I{row}))'
+        cost_function_formula = f'(((K{row} * L{row})/ B{row}) + ((M{row} * N{row}) / B{row}) + ((O{row} * P{row}) / B{row}) + ((Q{row} * R{row}) / B{row})  + ((S{row} * T{row}) / B{row}) + ((U{row} * V{row}) / B{row}) + (D{row} * E{row}) + (F{row} * G{row}) + (H{row} * I{row}))'
 
         formula = "=" + cost_function_formula
         worksheet.cell(row=row, column=24).value = formula
