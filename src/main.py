@@ -1,3 +1,4 @@
+import copy
 import csv
 import itertools
 import random
@@ -74,7 +75,7 @@ class Individual:
         # Using _ because nothing depends on that variable on the for
         self.individualStops = [random.randint(0, 1) for _ in stopTypes]
         self.id = 0
-        # self.verifyAnchors()
+        self.verifyAnchors()
         self.value_cost_function = 0
         self.individual_weight = 0
         self.individual_weight_percent = 0
@@ -92,7 +93,7 @@ class Individual:
         self.weight_percent_low_ref = 20
         self.weight_extension = 25
         self.weight_station = 2
-        self.weight_halt = 4
+        self.weight_halt = 3
         self.weight_anchor = 1
         self.weight_level_crossing = 5
         self.weight_signal = 7
@@ -108,6 +109,13 @@ class Individual:
 
     def get_Number_Stops(self) -> int:
         return len(self.stopTypes)
+
+
+    def verifyAnchors(self):
+        # Guarantee that the Anchor is always active
+        for index, stopType in enumerate(self.stopTypes):
+            if stopType == 'Anchor':
+                self.individualStops[index] = 1
 
     def compute_cost_function(self, stations_active_number: int, below_min: float, low_ref: float, extension: float,
                               list_stations: list[int],
@@ -383,7 +391,7 @@ def create_population(size_population: int, stop_types: list[str]):
 
     return population
 
-
+"""
 def verify_anchors(population: list[Individual]):
     for individual in population:
         for index, stop in enumerate(individual.individualStops):
@@ -392,11 +400,11 @@ def verify_anchors(population: list[Individual]):
                 # Force the position with the Anchor to be active (1)
                 individual.individualStops[index] = 1
     return population
-
+"""
 
 def compute_population_data(population: list[Individual]):
     # print("População:")
-    population = verify_anchors(population)
+    # population = verify_anchors(population)
     for individual in population:
         num_active_stops = individual.get_Number_Active_Stops()
         individualStops = individual.get_individualStops
@@ -544,6 +552,7 @@ def generations_creation(population_size: int, stop_Types: list[str], number_gen
     index = 0
 
     for generation in range(number_generations):
+        print("Generation no:", generation)
         number_elite = len(elite_individuals)
         if number_elite == 0:
             elite = get_elite(computed_population, eliteSize)
@@ -592,7 +601,8 @@ def get_elite(new_population: list[Individual], eliteSize: int):
     number_elite = 0
     for individual in new_population:
         if number_elite < eliteSize:
-            elite_individuals.append(individual)
+            # Usage of deepcopy to create a new (equal) object
+            elite_individuals.append(copy.deepcopy(individual))
             number_elite += 1
         else:
             break
@@ -743,8 +753,8 @@ if __name__ == "__main__":
     # This will be the initial size, the population after selection crossover and
     # mutation will have a random size based on the selection occurance
     population_size = 20
-    number_generations = 60
-    crossover_probability = 0.30
+    number_generations = 300
+    crossover_probability = 0.50
     mutation_probability = 0.01
     best_individuals = []
     all_cost_function_data = []
