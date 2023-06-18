@@ -391,20 +391,8 @@ def create_population(size_population: int, stop_types: list[str]):
 
     return population
 
-"""
-def verify_anchors(population: list[Individual]):
-    for individual in population:
-        for index, stop in enumerate(individual.individualStops):
-            # checks if the archor station is not set to 1
-            if individual.stopTypes[index] == 'Anchor' and stop == 0:
-                # Force the position with the Anchor to be active (1)
-                individual.individualStops[index] = 1
-    return population
-"""
 
 def compute_population_data(population: list[Individual]):
-    # print("População:")
-    # population = verify_anchors(population)
     for individual in population:
         num_active_stops = individual.get_Number_Active_Stops()
         individualStops = individual.get_individualStops
@@ -430,7 +418,6 @@ def compute_population_data(population: list[Individual]):
         individual.max_extension_low_ref = max_extension
         individual.individual_coverage = line_coverage
         individual.individual_pks = pk_values
-        # print("\t", individualStops, num_active_stops, individual_cost_function_value)
     return population
 
 
@@ -464,8 +451,6 @@ def selection(selection_population: list[Individual], eliteSize: int):
                 parents.append(selection_population[count])
                 cumulative_weights.remove(score)
                 break
-    # parents = list(set(parents))
-    # print("Selection:", parents)
 
     return parents
 
@@ -489,10 +474,7 @@ def crossover(parents: list[Individual], crossover_probability: float):
             while first_parent_index == second_parent_index:
                 second_parent_index = random.randrange(0, length)
 
-            # start = random.randrange(chromossome_size)
             stop = round(chromossome_size / 2)
-            # if start > stop:
-            #    start, stop = stop, start
 
             # Create child chromosomes by combining sections of the parents' chromosomes
             first_parent = parents[first_parent_index]
@@ -516,14 +498,12 @@ def crossover(parents: list[Individual], crossover_probability: float):
 
 def mutation(mutation_population: list[Individual], mutation_probability: float):
     # This method will apply a bit swap to one of the individuals on the crossover population
-    # print("População pós mutação:")
     population = []
     population.extend(mutation_population)
     for individual in mutation_population:
         rand_numb = round(random.uniform(0, 1), 2)
         if rand_numb <= mutation_probability:
             index_1 = random.randrange(len(individual.individualStops))
-            # index_2 = random.randrange(len(individual.individualStops))
 
             if individual.stopTypes[index_1] == 'Anchor':
                 individual.individualStops[index_1] = 1
@@ -532,9 +512,6 @@ def mutation(mutation_population: list[Individual], mutation_probability: float)
                     individual.individualStops[index_1] = 0
                 else:
                     individual.individualStops[index_1] = 1
-
-        # print("\t", individual)
-    # population = population + mutation_population
 
     return mutation_population
 
@@ -545,7 +522,7 @@ def generations_creation(population_size: int, stop_Types: list[str], number_gen
     elite_individuals = []
     population = create_population(population_size, stop_Types)
     #population[0].individualStops = [0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0]
-    #population[0].individualStops = [0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0]
+    population[0].individualStops = [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
     computed_population = compute_population_data(population)
     rank_individuals(computed_population)
     all_populations_data = []
@@ -759,7 +736,7 @@ if __name__ == "__main__":
     # This will be the initial size, the population after selection crossover and
     # mutation will have a random size based on the selection occurance
     population_size = 20
-    number_generations = 300
+    number_generations = 10
     crossover_probability = 0.50
     mutation_probability = 0.01
     best_individuals = []
