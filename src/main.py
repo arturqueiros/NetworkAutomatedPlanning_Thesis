@@ -1,6 +1,7 @@
 import copy
 import csv
 import itertools
+import os
 import random
 from typing import List
 
@@ -110,7 +111,6 @@ class Individual:
     def get_Number_Stops(self) -> int:
         return len(self.stopTypes)
 
-
     def verifyAnchors(self):
         # Guarantee that the Anchor is always active
         for index, stopType in enumerate(self.stopTypes):
@@ -158,13 +158,13 @@ class Individual:
         self.num_other = other
         best_value = ((2 * self.weight_station) / total_stops) + (
                 (1 * self.weight_halt) / total_stops) + \
-                                   ((1 * self.weight_anchor) / total_stops) + (
-                                           (0 * self.weight_level_crossing) / total_stops) + \
-                                   ((0 * self.weight_signal) / total_stops) + (
-                                           (0 * self.weight_other) / total_stops) + \
-                                   (0 * self.weight_percent_below_min) + (
-                                           0 * self.weight_percent_low_ref) + (
-                                           0 * self.weight_extension)
+                     ((1 * self.weight_anchor) / total_stops) + (
+                             (0 * self.weight_level_crossing) / total_stops) + \
+                     ((0 * self.weight_signal) / total_stops) + (
+                             (0 * self.weight_other) / total_stops) + \
+                     (0 * self.weight_percent_below_min) + (
+                             0 * self.weight_percent_low_ref) + (
+                             0 * self.weight_extension)
 
         self.value_cost_function = ((self.num_station * self.weight_station) / total_stops) + (
                 (self.num_halt * self.weight_halt) / total_stops) + \
@@ -190,8 +190,8 @@ def read_coverages_file():
     stations = []
     pk_list = []
     pk_values = []
-    with open('C:/Users/artur/source/repos/NetworkAutomatedPlanning_Thesis/data/Coverage_Cascais.csv',
-              'r') as source_file:
+    currentdir_coverageFile = os.getcwd()
+    with open(currentdir_coverageFile + '/data/Coverage_Cascais.csv', 'r') as source_file:
         data_reader = csv.reader(source_file)
 
         for i, line in enumerate(data_reader):
@@ -264,10 +264,11 @@ def file_creation(filename1: str, filename2: str, generations_number: int):
 
     return workbook1, workbook2
 
+
 def identify_station_pks(stations_names: list[str], active_stations: list[str]):
     interesting_pks = []
-    with open(
-            'C:/Users/artur/source/repos/NetworkAutomatedPlanning_Thesis/data/Cascais Elements_pks.csv') as source_file:
+    currentdir_pks = os.getcwd()
+    with open(currentdir_pks + '/data/Cascais Elements_pks.csv') as source_file:
         data_reader2 = csv.reader(source_file)
         station_names_and_pks = [station for station in data_reader2]
         station_names_and_pks.pop(0)
@@ -333,6 +334,7 @@ def processStationPoints(active_station_pks: list[str], datapoints: list[DataPoi
             elif datapoint.pk.point_val > float(station_pk):
                 break
 
+
 def compute_max_extension(coverage_points: list[float], pk_reference: list[float]):
     point_first = None
     point_last = None
@@ -364,10 +366,10 @@ def compute_extension_distance(point_first: float, point_last: float):
     return max_distance
 
 
-
 def read_stopTypes():
     types = []
-    with open('C:/Users/artur/source/repos/NetworkAutomatedPlanning_Thesis/data/Cascais Elements.csv') as types_file:
+    currentdir_stopTypes = os.getcwd()
+    with open(currentdir_stopTypes + '/data/Cascais Elements.csv') as types_file:
         data_reader = csv.reader(types_file)
         next(data_reader)
         for row in data_reader:
@@ -521,7 +523,7 @@ def generations_creation(population_size: int, stop_Types: list[str], number_gen
     best_individuals = []
     elite_individuals = []
     population = create_population(population_size, stop_Types)
-    #population[0].individualStops = [0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0]
+    # population[0].individualStops = [0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0]
     population[0].individualStops = [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
     computed_population = compute_population_data(population)
     rank_individuals(computed_population)
