@@ -736,12 +736,18 @@ def cov_data_plot(generation: int, best_individuals: list[Individual]):
 
 
 def generation_evolution_plot(generation: list[int], best_individual_cost_value: list[int]):
+    xtick = 1
+    if max(generation) - min(generation) > 30:
+        xtick = (max(generation) - min(generation)) / 5
+    if max(generation) - min(generation) > 100:
+        xtick = (max(generation) - min(generation)) / 10
+
     plt.figure(1)
     plt.plot(generation, best_individual_cost_value)
     plt.xlabel("Generation")
     plt.ylabel("Best individual cost function value")
     plt.title("Cost Function Value evolution of the best individual")
-    plt.xticks(range(min(generation), max(generation) + 1, 1))
+    plt.xticks(range(min(generation), max(generation) + 1, xtick))
 
 
 if __name__ == "__main__":
