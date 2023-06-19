@@ -2,6 +2,7 @@ import copy
 import csv
 import itertools
 import os
+import pathlib
 import random
 from typing import List
 
@@ -190,8 +191,8 @@ def read_coverages_file():
     stations = []
     pk_list = []
     pk_values = []
-    currentdir_coverageFile = os.getcwd()
-    with open(currentdir_coverageFile + '/data/Coverage_Cascais.csv', 'r') as source_file:
+    file_path_coverage = '../data/Coverage_Cascais.csv'
+    with open(file_path_coverage, 'r') as source_file:
         data_reader = csv.reader(source_file)
 
         for i, line in enumerate(data_reader):
@@ -267,8 +268,8 @@ def file_creation(filename1: str, filename2: str, generations_number: int):
 
 def identify_station_pks(stations_names: list[str], active_stations: list[str]):
     interesting_pks = []
-    currentdir_pks = os.getcwd()
-    with open(currentdir_pks + '/data/Cascais Elements_pks.csv') as source_file:
+    file_path_pks = '../data/Cascais Elements_pks.csv'
+    with open(file_path_pks, 'r') as source_file:
         data_reader2 = csv.reader(source_file)
         station_names_and_pks = [station for station in data_reader2]
         station_names_and_pks.pop(0)
@@ -368,8 +369,8 @@ def compute_extension_distance(point_first: float, point_last: float):
 
 def read_stopTypes():
     types = []
-    currentdir_stopTypes = os.getcwd()
-    with open(currentdir_stopTypes + '/data/Cascais Elements.csv') as types_file:
+    file_path_stopTypes = '../data/Cascais Elements.csv'
+    with open(file_path_stopTypes, 'r') as types_file:
         data_reader = csv.reader(types_file)
         next(data_reader)
         for row in data_reader:
@@ -523,8 +524,6 @@ def generations_creation(population_size: int, stop_Types: list[str], number_gen
     best_individuals = []
     elite_individuals = []
     population = create_population(population_size, stop_Types)
-    # population[0].individualStops = [0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0]
-    population[0].individualStops = [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
     computed_population = compute_population_data(population)
     rank_individuals(computed_population)
     all_populations_data = []
