@@ -68,6 +68,9 @@ class LineCoverage:
     def get_max_coverages(self):
         return self.max_coverages
 
+    def get_max_coverages_public(self):
+        return self.max_coverages
+
 
 class Individual:
     """This symbolizes one individual - a random test case with random active/non-active stops."""
@@ -90,7 +93,6 @@ class Individual:
         self.num_signal = 0
         self.num_level_crossing = 0
         self.num_other = 0
-        self.weight_active_stations = 35
         self.weight_percent_below_min = 55
         self.weight_percent_low_ref = 20
         self.weight_extension = 25
@@ -560,6 +562,14 @@ def generations_creation(population_size: int, stop_Types: list[str], number_gen
         all_populations_data.append(generation_data)
         parents = []
         after_crossover_population = []
+        for ind in final_population:
+            plt.plot(ind.individual_coverage, pk_values)
+            plt.xlim(0, max(pk_values))
+            plt.axhline(y=lim_min_coverage, color='r')
+            plt.axhline(y=low_signal_ref, color='y')
+            plt.xlabel("Distance (pk)")
+            plt.ylabel("Coverage (dBm)")
+            plt.show()
 
     return best_individuals, all_populations_data
 
@@ -694,29 +704,32 @@ def cov_data_plot(generation: int, best_individuals: list[Individual]):
     coverage_axis_aux = best_individuals[generation].individual_coverage
     coverage_axis = coverage_axis_aux.get_max_coverages
     plt.figure(generation + 1)
+    #plt.figure(1)
     plt.plot(pk_axis, coverage_axis)
     plt.xlim(0, max(pk_values))
     plt.axhline(y=lim_min_coverage, color='r')
     plt.axhline(y=low_signal_ref, color='y')
     plt.xlabel("Distance (pk)")
     plt.ylabel("Coverage (dBm)")
+    #plt.title("Coverage Map Bad Individual")
     title = f"Coverage Map of the best individual of Generation number {generation + 1}"
+    #plt.show()
     plt.title(title)
 
 
 def generation_evolution_plot(generation: list[int], best_individual_cost_value: list[int]):
     xtick = 1
-    if max(generation) - min(generation) > 30:
-        xtick = (max(generation) - min(generation)) / 5
-    if max(generation) - min(generation) > 100:
-        xtick = (max(generation) - min(generation)) / 10
+    if 100 > max(generation) >= 30:
+        xtick = round(max(generation) / (max(generation) / 2))
+    if 30 < max(generation) >= 100:
+        xtick = round(max(generation) / (max(generation) / 10))
 
     plt.figure(1)
     plt.plot(generation, best_individual_cost_value)
     plt.xlabel("Generation")
     plt.ylabel("Best individual cost function value")
     plt.title("Cost Function Value evolution of the best individual")
-    plt.xticks(range(min(generation), max(generation) + 1, xtick))
+    plt.xticks(range(0, max(generation)+1, xtick))
 
 
 if __name__ == "__main__":
@@ -727,8 +740,8 @@ if __name__ == "__main__":
     low_signal_ref = -85
     # This will be the initial size, the population after selection crossover and
     # mutation will have a random size based on the selection occurance
-    population_size = 20
     number_generations = 10
+    population_size = 10
     crossover_probability = 0.50
     mutation_probability = 0.01
     best_individuals = []
@@ -737,7 +750,7 @@ if __name__ == "__main__":
     # Create the xlsx file to store the data from all the generations
     workbook1, workbook2 = file_creation(filename1, filename2, number_generations)
 
-    # Size of elite population should never be higher than 5% of the population size
+    # Size of elite population should never be higher than 1% of the population size
     eliteSize = round(0.01 * population_size)
     if eliteSize == 0:
         eliteSize = 1
