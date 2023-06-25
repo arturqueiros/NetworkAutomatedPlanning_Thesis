@@ -102,7 +102,7 @@ class Individual:
         self.weight_level_crossing = 5
         self.weight_signal = 7
         self.weight_other = 10
-        self.individual_coverage = []
+        self.individual_coverage = LineCoverage([], [])
         self.individual_pks = []
 
     def set_individualStops(self, individualStops: list[int]):
@@ -430,13 +430,14 @@ def rank_individuals(population: list[Individual]):
     return population.sort(key=lambda individual: individual.value_cost_function, reverse=False)
 
 
-def selection(selection_population: list[Individual], eliteSize: int):
+def selection(selection_population: list[Individual], eliteSize: int, crossover_probability: float, population_size: int):
     population_total_cost_val_sum = 0
     cumulative_weights = [0]
     parents = []
     j = 0
     elite_index = 0
     elite = []
+    selection_number = round(crossover_probability * population_size)
     for i in range(eliteSize):
         selection_population.remove(selection_population[i])
     for individual in selection_population:
@@ -449,7 +450,7 @@ def selection(selection_population: list[Individual], eliteSize: int):
 
     # Roulette selection method, the number of parents obtain from this selection must never be smaller than half of the population size
     max_value = max(cumulative_weights)
-    for count in range(len(selection_population)):
+    for count in range(selection_number):
         random_number = random.uniform(0, max_value)
         for score in cumulative_weights:
             if random_number <= score:
@@ -460,7 +461,7 @@ def selection(selection_population: list[Individual], eliteSize: int):
     return parents
 
 
-def crossover(parents: list[Individual], crossover_probability: float):
+def crossover(parents: list[Individual]):
     crossover_population = []
     random.shuffle(parents)
     parents_check = []
@@ -472,31 +473,30 @@ def crossover(parents: list[Individual], crossover_probability: float):
     chromossome_size = len(parents[0].individualStops)
 
     for pair in range(number_pairs):
-        if random.random() < crossover_probability:
-            length = len(parents)
-            first_parent_index = random.randrange(0, length)
+        length = len(parents)
+        first_parent_index = random.randrange(0, length)
+        second_parent_index = random.randrange(0, length)
+        while first_parent_index == second_parent_index:
             second_parent_index = random.randrange(0, length)
-            while first_parent_index == second_parent_index:
-                second_parent_index = random.randrange(0, length)
 
-            stop = round(chromossome_size / 2)
+        stop = round(chromossome_size / 2)
 
-            # Create child chromosomes by combining sections of the parents' chromosomes
-            first_parent = parents[first_parent_index]
-            second_parent = parents[second_parent_index]
-            first_child = Individual(list(first_parent.individualStops))
-            first_child.set_individualStops(first_parent.individualStops[0:stop] + second_parent.individualStops[stop:])
-            second_child = Individual(list(second_parent.individualStops))
-            second_child.set_individualStops(
-                second_parent.individualStops[0:stop] + first_parent.individualStops[stop:])
+        # Create child chromosomes by combining sections of the parents' chromosomes
+        first_parent = parents[first_parent_index]
+        second_parent = parents[second_parent_index]
+        first_child = Individual(list(first_parent.individualStops))
+        first_child.set_individualStops(first_parent.individualStops[0:stop] + second_parent.individualStops[stop:])
+        second_child = Individual(list(second_parent.individualStops))
+        second_child.set_individualStops(
+        second_parent.individualStops[0:stop] + first_parent.individualStops[stop:])
 
-            # Remove the parents from the pool
-            parents.remove(first_parent)
-            parents.remove(second_parent)
+        # Remove the parents from the pool
+        parents.remove(first_parent)
+        parents.remove(second_parent)
 
-            crossover_population.append(first_child)
-            crossover_population.append(second_child)
-            crossover_population = compute_population_data(crossover_population)
+        crossover_population.append(first_child)
+        crossover_population.append(second_child)
+        crossover_population = compute_population_data(crossover_population)
 
     return crossover_population
 
@@ -536,16 +536,16 @@ def generations_creation(population_size: int, stop_Types: list[str], number_gen
         number_elite = len(elite_individuals)
         if number_elite == 0:
             elite = get_elite(computed_population, eliteSize)
-            parents = selection(population, eliteSize)
+            parents = selection(population, eliteSize, crossover_probability, population_size)
 
         new_population_size = population_size - number_elite
         if number_elite > 0:
             elite = get_elite(final_population, eliteSize)
-            parents = selection(final_population, eliteSize)
+            parents = selection(final_population, eliteSize, crossover_probability, population_size)
         if number_elite < 0:
             print("Elite can never be lower than 0!")
             exit()
-        crossover_population = crossover(parents, crossover_probability)
+        crossover_population = crossover(parents)
         after_crossover_population = crossover_population + elite
         # Checks the new_population size and if its lower than initial population size, fills the population with new random individuals
         filled_population = fill_population(after_crossover_population, population_size, stop_Types)
@@ -562,15 +562,17 @@ def generations_creation(population_size: int, stop_Types: list[str], number_gen
         all_populations_data.append(generation_data)
         parents = []
         after_crossover_population = []
-        for ind in final_population:
-            plt.plot(ind.individual_coverage, pk_values)
+        """for ind in final_population:
+            plt.figure(generation + 1)
+            plt.plot(pk_values, ind.individual_coverage.max_coverages)
             plt.xlim(0, max(pk_values))
             plt.axhline(y=lim_min_coverage, color='r')
             plt.axhline(y=low_signal_ref, color='y')
             plt.xlabel("Distance (pk)")
             plt.ylabel("Coverage (dBm)")
+            plt.title("Coverage Map Individual")
             plt.show()
-
+        """
     return best_individuals, all_populations_data
 
 
@@ -740,8 +742,8 @@ if __name__ == "__main__":
     low_signal_ref = -85
     # This will be the initial size, the population after selection crossover and
     # mutation will have a random size based on the selection occurance
-    number_generations = 10
-    population_size = 10
+    number_generations = 20
+    population_size = 50
     crossover_probability = 0.50
     mutation_probability = 0.01
     best_individuals = []
