@@ -430,7 +430,7 @@ def rank_individuals(population: list[Individual]):
     return population.sort(key=lambda individual: individual.value_cost_function, reverse=False)
 
 
-def selection(selection_population: list[Individual], eliteSize: int, crossover_probability: float, population_size: int):
+def roulette_selection(selection_population: list[Individual], eliteSize: int, crossover_probability: float, population_size: int):
     population_total_cost_val_sum = 0
     cumulative_weights = [0]
     parents = []
@@ -448,7 +448,6 @@ def selection(selection_population: list[Individual], eliteSize: int, crossover_
         j += 1
     cumulative_weights.pop(0)
 
-    # Roulette selection method, the number of parents obtain from this selection must never be smaller than half of the population size
     max_value = max(cumulative_weights)
     for count in range(selection_number):
         random_number = random.uniform(0, max_value)
@@ -460,6 +459,32 @@ def selection(selection_population: list[Individual], eliteSize: int, crossover_
 
     return parents
 
+def tournament_selection(selection_population: list[Individual], eliteSize: int, crossover_probability: float, tournament_size: int):
+    parents = []
+    elite = []
+
+    # Store elite individuals separately
+    elite = selection_population[:eliteSize]
+
+    # Remove elite individuals from the selection population
+    selection_population = selection_population[eliteSize:]
+
+    selection_number = round(crossover_probability * len(selection_population))
+
+    for _ in range(selection_number):
+        # Randomly select individuals for the tournament
+        tournament_individuals = random.sample(selection_population, tournament_size)
+
+        # Find the individual with the lowest cost function value in the tournament
+        winner = min(tournament_individuals, key=lambda x: x.value_cost_function)
+
+        # Add the winner to the parents list
+        parents.append(winner)
+
+    # Append the elite individuals to the parents list
+    parents.extend(elite)
+
+    return parents
 
 def crossover(parents: list[Individual]):
     crossover_population = []
@@ -509,57 +534,61 @@ def mutation(mutation_population: list[Individual], mutation_probability: float)
         rand_numb = round(random.uniform(0, 1), 2)
         if rand_numb <= mutation_probability:
             index_1 = random.randrange(len(individual.individualStops))
-
-            if individual.stopTypes[index_1] == 'Anchor':
-                individual.individualStops[index_1] = 1
+            while individual.stopTypes[index_1] == 'Anchor':
+                index_1 = random.randrange(len(individual.individualStops))
+            if individual.individualStops[index_1] == 1:
+                individual.individualStops[index_1] = 0
             else:
-                if individual.individualStops[index_1] == 1:
-                    individual.individualStops[index_1] = 0
-                else:
-                    individual.individualStops[index_1] = 1
+                individual.individualStops[index_1] = 1
 
     return mutation_population
 
 
 def generations_creation(population_size: int, stop_Types: list[str], number_generations: int, eliteSize: int,
                          crossover_probability: float, mutation_probability: float, data_file: Workbook):
-    best_individuals = []
-    elite_individuals = []
+    best_roulette_individuals = []
+    elite_roulette_individuals = []
+    best_tournament_individuals = []
+    elite_tournament_individuals = []
     population = create_population(population_size, stop_Types)
     computed_population = compute_population_data(population)
     rank_individuals(computed_population)
-    all_populations_data = []
+    all_populations_roulette_data = []
+    all_populations_tournament_data = []
     index = 0
 
     for generation in range(number_generations):
         print("Generation no:", generation)
-        number_elite = len(elite_individuals)
-        if number_elite == 0:
-            elite = get_elite(computed_population, eliteSize)
-            parents = selection(population, eliteSize, crossover_probability, population_size)
+        number_roulette_elite = len(elite_roulette_individuals)
+        tournament_roulette_elite = len(elite_roulette_individuals)
+        if number_roulette_elite == 0:
+            roulette_elite = get_elite(computed_population, eliteSize)
+            roulette_parents = roulette_selection(population, eliteSize, crossover_probability, population_size)
+            tournament_elite = get_elite(computed_population, eliteSize)
+            tournament_parents = roulette_selection(population, eliteSize, crossover_probability, population_size)
 
-        new_population_size = population_size - number_elite
-        if number_elite > 0:
-            elite = get_elite(final_population, eliteSize)
-            parents = selection(final_population, eliteSize, crossover_probability, population_size)
-        if number_elite < 0:
+        new_population_size = population_size - number_roulette_elite
+        if number_roulette_elite > 0:
+            roulette_elite = get_elite(final_roulette_population, eliteSize)
+            parents = roulette_selection(final_roulette_population, eliteSize, crossover_probability, population_size)
+        if number_roulette_elite < 0:
             print("Elite can never be lower than 0!")
             exit()
-        crossover_population = crossover(parents)
-        after_crossover_population = crossover_population + elite
+        crossover_roulette_population = crossover(roulette_parents)
+        after_crossover_roulette_population = crossover_roulette_population + roulette_elite
         # Checks the new_population size and if its lower than initial population size, fills the population with new random individuals
-        filled_population = fill_population(after_crossover_population, population_size, stop_Types)
+        filled_roulette_population = fill_population(after_crossover_roulette_population, population_size, stop_Types)
         # Generate a random number between 0 and 1 to see if the mutation will occur
-        final_population = mutation(filled_population, mutation_probability)
-        final_population = compute_population_data(final_population)
-        rank_individuals(final_population)
-        elite_individuals = get_elite(final_population, eliteSize)
-        best_individuals.append(final_population[0])
-        all_data(final_population, generation, data_file)
+        final_roulette_population = mutation(filled_roulette_population, mutation_probability)
+        final_roulette_population = compute_population_data(final_roulette_population)
+        rank_individuals(final_roulette_population)
+        elite_roulette_individuals = get_elite(final_roulette_population, eliteSize)
+        best_roulette_individuals.append(final_roulette_population[0])
+        all_data(final_roulette_population, generation, data_file)
         generation_data = []
-        for index in range(len(final_population)):
-            generation_data.append(final_population[index])
-        all_populations_data.append(generation_data)
+        for index in range(len(final_roulette_population)):
+            generation_data.append(final_roulette_population[index])
+        all_populations_roulette_data.append(generation_data)
         parents = []
         after_crossover_population = []
         """for ind in final_population:
@@ -573,7 +602,7 @@ def generations_creation(population_size: int, stop_Types: list[str], number_gen
             plt.title("Coverage Map Individual")
             plt.show()
         """
-    return best_individuals, all_populations_data
+    return best_roulette_individuals, all_populations_roulette_data
 
 
 def fill_population(new_population: list[Individual], population_size: int, stop_Types: list[str]):
