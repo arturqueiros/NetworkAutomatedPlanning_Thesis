@@ -570,27 +570,43 @@ def generations_creation(population_size: int, stop_Types: list[str], number_gen
         new_population_size = population_size - number_roulette_elite
         if number_roulette_elite > 0:
             roulette_elite = get_elite(final_roulette_population, eliteSize)
-            parents = roulette_selection(final_roulette_population, eliteSize, crossover_probability, population_size)
+            roulette_parents = roulette_selection(final_roulette_population, eliteSize, crossover_probability, population_size)
+            tournament_elite = get_elite(final_tournament_population, eliteSize)
+            tournament_parents = roulette_selection(final_tournament_population, eliteSize, crossover_probability,
+                                                  population_size)
         if number_roulette_elite < 0:
             print("Elite can never be lower than 0!")
             exit()
         crossover_roulette_population = crossover(roulette_parents)
+        crossover_tournament_population = crossover(tournament_parents)
         after_crossover_roulette_population = crossover_roulette_population + roulette_elite
+        after_crossover_tournament_population = crossover_tournament_population + tournament_elite
         # Checks the new_population size and if its lower than initial population size, fills the population with new random individuals
         filled_roulette_population = fill_population(after_crossover_roulette_population, population_size, stop_Types)
+        filled_tournament_population = fill_population(after_crossover_tournament_population, population_size, stop_Types)
         # Generate a random number between 0 and 1 to see if the mutation will occur
         final_roulette_population = mutation(filled_roulette_population, mutation_probability)
+        final_tournament_population = mutation(filled_tournament_population, mutation_probability)
         final_roulette_population = compute_population_data(final_roulette_population)
+        final_tournament_population = compute_population_data(final_tournament_population)
         rank_individuals(final_roulette_population)
+        rank_individuals(final_tournament_population)
         elite_roulette_individuals = get_elite(final_roulette_population, eliteSize)
+        elite_tournament_individuals = get_elite(final_tournament_population, eliteSize)
         best_roulette_individuals.append(final_roulette_population[0])
+        best_tournament_individuals.append(final_tournament_population[0])
         all_data(final_roulette_population, generation, data_file)
+        all_data(final_tournament_population, generation, data_file)
         generation_data = []
         for index in range(len(final_roulette_population)):
             generation_data.append(final_roulette_population[index])
+            generation_data.append(final_tournament_population[index])
         all_populations_roulette_data.append(generation_data)
-        parents = []
-        after_crossover_population = []
+        all_populations_tournament_data.append(generation_data)
+        roulette_parents = []
+        tournament_parents = []
+        after_crossover_roulette_population = []
+        after_crossover_tournament_population = []
         """for ind in final_population:
             plt.figure(generation + 1)
             plt.plot(pk_values, ind.individual_coverage.max_coverages)
@@ -602,7 +618,7 @@ def generations_creation(population_size: int, stop_Types: list[str], number_gen
             plt.title("Coverage Map Individual")
             plt.show()
         """
-    return best_roulette_individuals, all_populations_roulette_data
+    return best_roulette_individuals, all_populations_roulette_data, best_tournament_individuals, all_populations_tournament_data
 
 
 def fill_population(new_population: list[Individual], population_size: int, stop_Types: list[str]):
@@ -790,7 +806,7 @@ if __name__ == "__main__":
     pk_values, stations, pk_list = read_coverages_file()
     stop_Types = read_stopTypes()
 
-    best_individuals, all_population = generations_creation(population_size, stop_Types, number_generations,
+    best_roulette_individuals, all_roulette_population, best_tournament_individuals, all_tournamet_population = generations_creation(population_size, stop_Types, number_generations,
                                                             eliteSize,
                                                             crossover_probability,
                                                             mutation_probability, workbook1)
