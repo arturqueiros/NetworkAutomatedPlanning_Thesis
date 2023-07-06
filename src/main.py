@@ -4,7 +4,7 @@ import itertools
 import os
 import pathlib
 import random
-from typing import List
+from typing import List, Callable
 
 import openpyxl
 from openpyxl import Workbook
@@ -227,7 +227,7 @@ def read_coverages_file():
     return pk_values, stations, pk_list
 
 
-def file_creation(filename1: str, filename2: str, generations_number: int):
+def file_creation(filename1: str, filename2: str, filename3: str, filename4: str, generations_number: int):
     table_hearders_all_data = ["Individual", "Line Total Stops", "Cost Function Value", "Percentage Below Minimum",
                                "Weight",
                                "Percentage Low Reference", "Weight", "Maximum Extension Low Reference", "Weight",
@@ -243,29 +243,40 @@ def file_creation(filename1: str, filename2: str, generations_number: int):
     # Creating 2 new workbook
     workbook1 = openpyxl.Workbook()
     workbook2 = openpyxl.Workbook()
+    workbook3 = openpyxl.Workbook()
+    workbook4 = openpyxl.Workbook()
 
     # Creating the number of pages according to the number of generations
     for i in range(generations_number):
         sheet_name = "Generation n." + str(i + 1)
         worksheet1 = workbook1.create_sheet(sheet_name)
+        worksheet3 = workbook3.create_sheet(sheet_name)
 
         for j, header in enumerate(table_hearders_all_data):
             worksheet1.cell(row=1, column=j + 1, value=header)
+            worksheet3.cell(row=1, column=j + 1, value=header)
 
     sheet_name1 = "Cost_Function Evolution"
     worksheet2 = workbook2.create_sheet(sheet_name1)
+    worksheet4 = workbook4.create_sheet(sheet_name1)
     sheet_name2 = "Cost_Function Generation"
     worksheet2 = workbook2.create_sheet(sheet_name2)
+    worksheet4 = workbook4.create_sheet(sheet_name2)
 
     for i, header in enumerate(table_hearders_best_individuals):
         worksheet2.cell(row=1, column=i + 1, value=header)
+        worksheet4.cell(row=1, column=i + 1, value=header)
 
     workbook1.remove(workbook1[workbook1.sheetnames[0]])
     workbook1.save(filename1)
     workbook2.remove(workbook2[workbook2.sheetnames[0]])
     workbook2.save(filename2)
+    workbook3.remove(workbook3[workbook3.sheetnames[0]])
+    workbook3.save(filename3)
+    workbook4.remove(workbook4[workbook4.sheetnames[0]])
+    workbook4.save(filename4)
 
-    return workbook1, workbook2
+    return workbook1, workbook2, workbook3, workbook4
 
 
 def identify_station_pks(stations_names: list[str], active_stations: list[str]):
@@ -430,7 +441,8 @@ def rank_individuals(population: list[Individual]):
     return population.sort(key=lambda individual: individual.value_cost_function, reverse=False)
 
 
-def roulette_selection(selection_population: list[Individual], eliteSize: int, crossover_probability: float, population_size: int):
+def roulette_selection(selection_population: list[Individual], eliteSize: int, crossover_probability: float,
+                       population_size: int):
     population_total_cost_val_sum = 0
     cumulative_weights = [0]
     parents = []
@@ -459,7 +471,9 @@ def roulette_selection(selection_population: list[Individual], eliteSize: int, c
 
     return parents
 
-def tournament_selection(selection_population: list[Individual], eliteSize: int, crossover_probability: float, tournament_size: int):
+
+def tournament_selection(selection_population: list[Individual], eliteSize: int, crossover_probability: float,
+                         population_size: int):
     parents = []
     elite = []
 
@@ -470,10 +484,9 @@ def tournament_selection(selection_population: list[Individual], eliteSize: int,
     selection_population = selection_population[eliteSize:]
 
     selection_number = round(crossover_probability * len(selection_population))
-
     for _ in range(selection_number):
         # Randomly select individuals for the tournament
-        tournament_individuals = random.sample(selection_population, tournament_size)
+        tournament_individuals = random.sample(selection_population, 2)
 
         # Find the individual with the lowest cost function value in the tournament
         winner = min(tournament_individuals, key=lambda x: x.value_cost_function)
@@ -485,6 +498,7 @@ def tournament_selection(selection_population: list[Individual], eliteSize: int,
     parents.extend(elite)
 
     return parents
+
 
 def crossover(parents: list[Individual]):
     crossover_population = []
@@ -513,7 +527,7 @@ def crossover(parents: list[Individual]):
         first_child.set_individualStops(first_parent.individualStops[0:stop] + second_parent.individualStops[stop:])
         second_child = Individual(list(second_parent.individualStops))
         second_child.set_individualStops(
-        second_parent.individualStops[0:stop] + first_parent.individualStops[stop:])
+            second_parent.individualStops[0:stop] + first_parent.individualStops[stop:])
 
         # Remove the parents from the pool
         parents.remove(first_parent)
@@ -544,70 +558,49 @@ def mutation(mutation_population: list[Individual], mutation_probability: float)
     return mutation_population
 
 
+"""
 def generations_creation(population_size: int, stop_Types: list[str], number_generations: int, eliteSize: int,
                          crossover_probability: float, mutation_probability: float, data_file: Workbook):
-    best_roulette_individuals = []
-    elite_roulette_individuals = []
-    best_tournament_individuals = []
-    elite_tournament_individuals = []
+    best_individuals = []
+    elite_individuals = []
     population = create_population(population_size, stop_Types)
     computed_population = compute_population_data(population)
     rank_individuals(computed_population)
-    all_populations_roulette_data = []
-    all_populations_tournament_data = []
+    all_populations_data = []
     index = 0
 
     for generation in range(number_generations):
         print("Generation no:", generation)
-        number_roulette_elite = len(elite_roulette_individuals)
-        tournament_roulette_elite = len(elite_roulette_individuals)
-        if number_roulette_elite == 0:
-            roulette_elite = get_elite(computed_population, eliteSize)
-            roulette_parents = roulette_selection(population, eliteSize, crossover_probability, population_size)
-            tournament_elite = get_elite(computed_population, eliteSize)
-            tournament_parents = roulette_selection(population, eliteSize, crossover_probability, population_size)
+        number_elite = len(elite_individuals)
+        if number_elite == 0:
+            elite = get_elite(computed_population, eliteSize)
+            parents = roulette_selection(population, eliteSize, crossover_probability, population_size)
 
-        new_population_size = population_size - number_roulette_elite
-        if number_roulette_elite > 0:
-            roulette_elite = get_elite(final_roulette_population, eliteSize)
-            roulette_parents = roulette_selection(final_roulette_population, eliteSize, crossover_probability, population_size)
-            tournament_elite = get_elite(final_tournament_population, eliteSize)
-            tournament_parents = roulette_selection(final_tournament_population, eliteSize, crossover_probability,
-                                                  population_size)
-        if number_roulette_elite < 0:
+        new_population_size = population_size - number_elite
+        if number_elite > 0:
+            elite = get_elite(final_population, eliteSize)
+            parents = roulette_selection(final_population, eliteSize, crossover_probability, population_size)
+        if number_elite < 0:
             print("Elite can never be lower than 0!")
             exit()
-        crossover_roulette_population = crossover(roulette_parents)
-        crossover_tournament_population = crossover(tournament_parents)
-        after_crossover_roulette_population = crossover_roulette_population + roulette_elite
-        after_crossover_tournament_population = crossover_tournament_population + tournament_elite
+        crossover_population = crossover(parents)
+        after_crossover_population = crossover_population + elite
         # Checks the new_population size and if its lower than initial population size, fills the population with new random individuals
-        filled_roulette_population = fill_population(after_crossover_roulette_population, population_size, stop_Types)
-        filled_tournament_population = fill_population(after_crossover_tournament_population, population_size, stop_Types)
+        filled_population = fill_population(after_crossover_population, population_size, stop_Types)
         # Generate a random number between 0 and 1 to see if the mutation will occur
-        final_roulette_population = mutation(filled_roulette_population, mutation_probability)
-        final_tournament_population = mutation(filled_tournament_population, mutation_probability)
-        final_roulette_population = compute_population_data(final_roulette_population)
-        final_tournament_population = compute_population_data(final_tournament_population)
-        rank_individuals(final_roulette_population)
-        rank_individuals(final_tournament_population)
-        elite_roulette_individuals = get_elite(final_roulette_population, eliteSize)
-        elite_tournament_individuals = get_elite(final_tournament_population, eliteSize)
-        best_roulette_individuals.append(final_roulette_population[0])
-        best_tournament_individuals.append(final_tournament_population[0])
-        all_data(final_roulette_population, generation, data_file)
-        all_data(final_tournament_population, generation, data_file)
+        final_population = mutation(filled_population, mutation_probability)
+        final_population = compute_population_data(final_population)
+        rank_individuals(final_population)
+        elite_individuals = get_elite(final_population, eliteSize)
+        best_individuals.append(final_population[0])
+        all_data(final_population, generation, data_file)
         generation_data = []
-        for index in range(len(final_roulette_population)):
-            generation_data.append(final_roulette_population[index])
-            generation_data.append(final_tournament_population[index])
-        all_populations_roulette_data.append(generation_data)
-        all_populations_tournament_data.append(generation_data)
-        roulette_parents = []
-        tournament_parents = []
-        after_crossover_roulette_population = []
-        after_crossover_tournament_population = []
-        """for ind in final_population:
+        for index in range(len(final_population)):
+            generation_data.append(final_population[index])
+        all_populations_data.append(generation_data)
+        parents = []
+        after_crossover_population = []
+        for ind in final_population:
             plt.figure(generation + 1)
             plt.plot(pk_values, ind.individual_coverage.max_coverages)
             plt.xlim(0, max(pk_values))
@@ -617,8 +610,80 @@ def generations_creation(population_size: int, stop_Types: list[str], number_gen
             plt.ylabel("Coverage (dBm)")
             plt.title("Coverage Map Individual")
             plt.show()
-        """
-    return best_roulette_individuals, all_populations_roulette_data, best_tournament_individuals, all_populations_tournament_data
+        
+    return best_individuals, all_populations_data
+"""
+
+
+def generations_creation(population_size: int, stop_Types: list[str], number_generations: int, eliteSize: int,
+                         crossover_probability: float, mutation_probability: float, roulette_data_file: Workbook,
+                         tournament_data_file: Workbook, roulette_filename: str, tournament_filename: str):
+    best_individuals = []
+    elite_individuals = []
+    initial_population = create_population(population_size, stop_Types)
+    computed_population = compute_population_data(initial_population)
+    rank_individuals(computed_population)
+    all_populations_data = []
+    index = 0
+
+    def run_selection(selection_method: Callable, best_individuals: list, elite_individuals: list,
+                      population: list[Individual], computed_population: list[Individual], all_populations_data: list):
+
+        for generation in range(number_generations):
+            print("Generation no:", generation)
+            number_elite = len(elite_individuals)
+            if number_elite == 0:
+                elite = get_elite(computed_population, eliteSize)
+                parents = selection_method(computed_population, eliteSize, crossover_probability, population_size)
+
+            new_population_size = population_size - number_elite
+            if number_elite > 0:
+                elite = get_elite(final_population, eliteSize)
+                parents = selection_method(final_population, eliteSize, crossover_probability, population_size)
+            if number_elite < 0:
+                print("Elite can never be lower than 0!")
+                exit()
+            crossover_population = crossover(parents)
+            after_crossover_population = crossover_population + elite
+            filled_population = fill_population(after_crossover_population, population_size, stop_Types)
+            final_population = mutation(filled_population, mutation_probability)
+            final_population = compute_population_data(final_population)
+            rank_individuals(final_population)
+            elite_individuals = get_elite(final_population, eliteSize)
+            best_individuals.append(final_population[0])
+            if selection_method.__name__ == "roulette_selection":
+                all_data(final_population, generation, roulette_data_file, roulette_filename)
+            if selection_method.__name__ == "tournament_selection":
+                all_data(final_population, generation, tournament_data_file, tournament_filename)
+            generation_data = []
+            for index in range(len(final_population)):
+                generation_data.append(final_population[index])
+            all_populations_data.append(generation_data)
+            parents = []
+            after_crossover_population = []
+        returning_best_individuals = []
+        returning_all_populations_data = []
+        returning_best_individuals[:] = best_individuals
+        best_individuals.clear()
+        returning_all_populations_data[:] = all_populations_data
+        all_populations_data.clear()
+
+        return returning_best_individuals, returning_all_populations_data
+
+    # Run with the tournament selection method
+    tournament_best_individuals, tournament_all_populations_data = run_selection(tournament_selection, best_individuals,
+                                                                                 elite_individuals, initial_population,
+                                                                                 computed_population,
+                                                                                 all_populations_data)
+
+    computed_population = compute_population_data(initial_population)
+
+    # Run with the roulette selection method
+    roulette_best_individuals, roulette_all_populations_data = run_selection(roulette_selection, best_individuals,
+                                                                             elite_individuals, initial_population,
+                                                                             computed_population, all_populations_data)
+
+    return roulette_best_individuals, roulette_all_populations_data, tournament_best_individuals, tournament_all_populations_data
 
 
 def fill_population(new_population: list[Individual], population_size: int, stop_Types: list[str]):
@@ -644,7 +709,7 @@ def get_elite(new_population: list[Individual], eliteSize: int):
     return elite_individuals
 
 
-def all_data(new_population: list[Individual], generation: int, all_data_file: Workbook):
+def all_data(new_population: list[Individual], generation: int, all_data_file: Workbook, filename: str):
     sheet_name1 = "Generation n." + str(generation + 1)
     worksheet = all_data_file[sheet_name1]
 
@@ -677,37 +742,61 @@ def all_data(new_population: list[Individual], generation: int, all_data_file: W
         formula = "=" + cost_function_formula
         worksheet.cell(row=row, column=24).value = formula
         # worksheet.cell(row=row, column=22, value=cost_function_formula.format(row=row))
-    workbook1.save(filename1)
-    all_data_file.save(filename1)
+    # workbook3.save(filename)
+    all_data_file.save(filename)
 
 
-def results_data(best_individuals: list[Individual], best_individuals_file: Workbook, generation: list[int],
-                 best_individual_cost_value: list[int], population_size: int, number_generations: int,
-                 crossover_prob: float, mutatio_prob: float):
+def results_data(roulette_best_individuals: list[Individual], tournament_best_individuals: list[Individual],
+                 roulette_best_individuals_file: Workbook, tournament_best_individuals_file: Workbook,
+                 generation: list[int], roulette_best_individual_cost_value: list[int],
+                 tournament_best_individual_cost_value: list[int], population_size: int, number_generations: int,
+                 crossover_prob: float, mutation_prob: float, roulette_results_filename: str,
+                 tournament_results_filename: str):
     sheet_name1 = "Cost_Function Evolution"
-    worksheet1 = best_individuals_file[sheet_name1]
-    fig1, ax = plt.subplots()
-    generation_evolution_plot(generation, best_individual_cost_value)
+    worksheet1 = roulette_best_individuals_file[sheet_name1]
+    fig1, ax1 = plt.subplots()
+    generation_evolution_plot(generation, roulette_best_individual_cost_value)
 
     # Convert plot to image
-    image_stream = io.BytesIO()
-    plt.savefig(image_stream, format='png')
+    image_stream1 = io.BytesIO()
+    plt.savefig(image_stream1, format='png')
     plt.close(fig1)
 
     # Insert the image into the Excel worksheet
-    image_stream.seek(0)
-    img = Image(image_stream)
-    img.width = 300  # Adjust the width of the image if needed
-    img.height = 220  # Adjust the height of the image if needed
-    worksheet1.add_image(img, f'C{4}')
+    image_stream1.seek(0)
+    img1 = Image(image_stream1)
+    img1.width = 300  # Adjust the width of the image if needed
+    img1.height = 220  # Adjust the height of the image if needed
+    worksheet1.add_image(img1, f'C{4}')
     worksheet1.cell(row=5, column=10, value=f"No. Individuals: {population_size}")
     worksheet1.cell(row=6, column=10, value=f"No. Generations: {number_generations}")
     worksheet1.cell(row=7, column=10, value=f"Crossover Prob.: {crossover_prob}")
-    worksheet1.cell(row=8, column=10, value=f"Mutation Prob.: {mutatio_prob}")
+    worksheet1.cell(row=8, column=10, value=f"Mutation Prob.: {mutation_prob}")
+
+    worksheet3 = tournament_best_individuals_file[sheet_name1]
+    fig2, ax2 = plt.subplots()
+    generation_evolution_plot(generation, tournament_best_individual_cost_value)
+    # Convert plot to image
+    image_stream2 = io.BytesIO()
+    plt.savefig(image_stream2, format='png')
+    plt.close(fig2)
+
+    # Insert the image into the Excel worksheet
+    image_stream2.seek(0)
+    img2 = Image(image_stream2)
+    img2.width = 300  # Adjust the width of the image if needed
+    img2.height = 220  # Adjust the height of the image if needed
+    worksheet3.add_image(img2, f'C{4}')
+    worksheet3.cell(row=5, column=10, value=f"No. Individuals: {population_size}")
+    worksheet3.cell(row=6, column=10, value=f"No. Generations: {number_generations}")
+    worksheet3.cell(row=7, column=10, value=f"Crossover Prob.: {crossover_prob}")
+    worksheet3.cell(row=8, column=10, value=f"Mutation Prob.: {mutation_prob}")
 
     sheet_name2 = "Cost_Function Generation"
-    worksheet2 = best_individuals_file[sheet_name2]
-    for k, individual in enumerate(best_individuals):
+    worksheet2 = roulette_best_individuals_file[sheet_name2]
+
+    # Loop for roulette method results
+    for k, individual in enumerate(roulette_best_individuals):
         row = k + 2
         worksheet2.cell(row=row, column=1, value=k + 1)
         worksheet2.cell(row=row, column=2, value=str(individual.individualStops))
@@ -724,25 +813,62 @@ def results_data(best_individuals: list[Individual], best_individuals_file: Work
         worksheet2.cell(row=row, column=13, value=individual.num_other)
 
         # Generate the plot
-        fig2, ax = plt.subplots()
-        cov_data_plot(generation=k, best_individuals=best_individuals)
+        fig, ax = plt.subplots()
+        cov_data_plot(generation=k, best_individuals=roulette_best_individuals)
 
         # Convert plot to image
-        image_stream = io.BytesIO()
-        plt.savefig(image_stream, format='png')
-        plt.close(fig2)
+        image_stream1 = io.BytesIO()
+        plt.savefig(image_stream1, format='png')
+        plt.close(fig)
 
         # Insert the image into the Excel worksheet (Column 14 - Column N)
-        image_stream.seek(0)
-        img = Image(image_stream)
+        image_stream1.seek(0)
+        img1 = Image(image_stream1)
         worksheet2.column_dimensions['N'].width = 40
         worksheet2.row_dimensions[row].height = 170
-        img.width = 300  # Adjust the width of the image if needed
-        img.height = 220  # Adjust the height of the image if needed
-        worksheet2.add_image(img, f'N{row}')
+        img1.width = 300  # Adjust the width of the image if needed
+        img1.height = 220  # Adjust the height of the image if needed
+        worksheet2.add_image(img1, f'N{row}')
 
         # worksheet.cell(row=row, column=14, value=cov_data_plot(k, best_individuals))
-    best_individuals_file.save(filename2)
+    worksheet4 = tournament_best_individuals_file[sheet_name2]
+    # Loop for tournament method results
+    for i, individual in enumerate(tournament_best_individuals):
+        row = i + 2
+        worksheet4.cell(row=row, column=1, value=i + 1)
+        worksheet4.cell(row=row, column=2, value=str(individual.individualStops))
+        worksheet4.cell(row=row, column=3, value=float(individual.value_cost_function))
+        worksheet4.cell(row=row, column=4, value=float(individual.percent_below_min))
+        worksheet4.cell(row=row, column=5, value=float(individual.percent_below_ref))
+        worksheet4.cell(row=row, column=6, value=float(individual.max_extension_low_ref))
+        worksheet4.cell(row=row, column=7, value=individual.get_Number_Active_Stops())
+        worksheet4.cell(row=row, column=8, value=individual.num_station)
+        worksheet4.cell(row=row, column=9, value=individual.num_halt)
+        worksheet4.cell(row=row, column=10, value=individual.num_anchor)
+        worksheet4.cell(row=row, column=11, value=individual.num_signal)
+        worksheet4.cell(row=row, column=12, value=individual.num_level_crossing)
+        worksheet4.cell(row=row, column=13, value=individual.num_other)
+
+        # Generate the plot
+        fig, ax = plt.subplots()
+        cov_data_plot(generation=i, best_individuals=tournament_best_individuals)
+
+        # Convert plot to image
+        image_stream2 = io.BytesIO()
+        plt.savefig(image_stream2, format='png')
+        plt.close(fig)
+
+        # Insert the image into the Excel worksheet (Column 14 - Column N)
+        image_stream2.seek(0)
+        img2 = Image(image_stream2)
+        worksheet4.column_dimensions['N'].width = 40
+        worksheet4.row_dimensions[row].height = 170
+        img2.width = 300  # Adjust the width of the image if needed
+        img2.height = 220  # Adjust the height of the image if needed
+        worksheet4.add_image(img2, f'N{row}')
+
+    roulette_best_individuals_file.save(roulette_results_filename)
+    tournament_best_individuals_file.save(tournament_results_filename)
 
 
 def cov_data_plot(generation: int, best_individuals: list[Individual]):
@@ -750,17 +876,17 @@ def cov_data_plot(generation: int, best_individuals: list[Individual]):
     pk_axis = best_individuals[generation].individual_pks
     coverage_axis_aux = best_individuals[generation].individual_coverage
     coverage_axis = coverage_axis_aux.get_max_coverages
-    plt.figure(generation + 1)
-    #plt.figure(1)
-    plt.plot(pk_axis, coverage_axis)
+    plt.figure()
+    # plt.figure(1)
+    plt.plot(pk_axis, coverage_axis, color='black')
     plt.xlim(0, max(pk_values))
     plt.axhline(y=lim_min_coverage, color='r')
     plt.axhline(y=low_signal_ref, color='y')
     plt.xlabel("Distance (pk)")
     plt.ylabel("Coverage (dBm)")
-    #plt.title("Coverage Map Bad Individual")
+    # plt.title("Coverage Map Bad Individual")
     title = f"Coverage Map of the best individual of Generation number {generation + 1}"
-    #plt.show()
+    # plt.show()
     plt.title(title)
 
 
@@ -776,26 +902,29 @@ def generation_evolution_plot(generation: list[int], best_individual_cost_value:
     plt.xlabel("Generation")
     plt.ylabel("Best individual cost function value")
     plt.title("Cost Function Value evolution of the best individual")
-    plt.xticks(range(0, max(generation)+1, xtick))
+    plt.xticks(range(0, max(generation) + 1, xtick))
 
 
 if __name__ == "__main__":
     start_time = time.time()
-    filename1 = "data_storage.xlsx"
-    filename2 = "Result_Test.xlsx"
+    filename1 = "Roulette_data_storage.xlsx"
+    filename2 = "Roulette_Result_Test.xlsx"
+    filename3 = "Tournament_data_storage.xlsx"
+    filename4 = "Tournament_Result_Test.xlsx"
     lim_min_coverage = -95
     low_signal_ref = -85
     # This will be the initial size, the population after selection crossover and
     # mutation will have a random size based on the selection occurance
-    number_generations = 20
-    population_size = 50
-    crossover_probability = 0.50
+    number_generations = 25
+    population_size = 25
+    crossover_probability = 0.20
     mutation_probability = 0.01
-    best_individuals = []
+    roulette_best_individuals = []
     all_cost_function_data = []
 
     # Create the xlsx file to store the data from all the generations
-    workbook1, workbook2 = file_creation(filename1, filename2, number_generations)
+    workbook1, workbook2, workbook3, workbook4 = file_creation(filename1, filename2, filename3, filename4,
+                                                               number_generations)
 
     # Size of elite population should never be higher than 1% of the population size
     eliteSize = round(0.01 * population_size)
@@ -806,24 +935,28 @@ if __name__ == "__main__":
     pk_values, stations, pk_list = read_coverages_file()
     stop_Types = read_stopTypes()
 
-    best_roulette_individuals, all_roulette_population, best_tournament_individuals, all_tournamet_population = generations_creation(population_size, stop_Types, number_generations,
-                                                            eliteSize,
-                                                            crossover_probability,
-                                                            mutation_probability, workbook1)
+    roulette_best_individuals, roulette_all_population, tournament_best_individuals, tournament_all_population = \
+        generations_creation(population_size, stop_Types, number_generations, eliteSize, crossover_probability,
+                             mutation_probability, workbook1, workbook3, filename1, filename3)
 
-    x = list(itertools.chain.from_iterable([[i + 1] * len(row) for i, row in enumerate(all_population)]))
-    y = list(itertools.chain.from_iterable(all_cost_function_data))
-    best_individual_cost_value = []
+    """x = list(itertools.chain.from_iterable([[i + 1] * len(row) for i, row in enumerate(roulette_all_population)]))
+    y = list(itertools.chain.from_iterable(all_cost_function_data))"""
+    roulette_best_individual_cost_value = []
+    tournament_best_individual_cost_value = []
     generation = []
     gen = 1
-    for individual in best_individuals:
-        best_individual_cost_value.append(individual.value_cost_function)
+    for individual in roulette_best_individuals:
+        roulette_best_individual_cost_value.append(individual.value_cost_function)
         generation.append(gen)
         gen += 1
+
+    for individual in tournament_best_individuals:
+        tournament_best_individual_cost_value.append(individual.value_cost_function)
+
+    results_data(roulette_best_individuals, tournament_best_individuals, workbook2, workbook4, generation,
+                 roulette_best_individual_cost_value, tournament_best_individual_cost_value, population_size,
+                 number_generations, crossover_probability, mutation_probability, filename2, filename4)
 
     end_time = time.time()
     elapsed_time = end_time - start_time
     print("Elapsed time: ", elapsed_time)
-
-    results_data(best_individuals, workbook2, generation, best_individual_cost_value, population_size,
-                 number_generations, crossover_probability, mutation_probability)
