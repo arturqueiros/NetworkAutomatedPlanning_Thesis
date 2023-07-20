@@ -548,9 +548,12 @@ def mutation(mutation_population: list[Individual], mutation_probability: float)
     # This method will apply a bit swap to one of the individuals on the crossover population
     population = []
     population.extend(mutation_population)
+    rand_numb = 0
     for individual in mutation_population:
-        rand_numb = round(random.uniform(0, 1), 2)
+        while rand_numb == 0:
+            rand_numb = round(random.uniform(0, 1), 2)
         if rand_numb <= mutation_probability:
+            print("AQUI")
             index_1 = random.randrange(len(individual.individualStops))
             while individual.stopTypes[index_1] == 'Anchor':
                 index_1 = random.randrange(len(individual.individualStops))
@@ -922,7 +925,7 @@ if __name__ == "__main__":
     number_generations = 20
     population_size = 50
     crossover_probability = 0.8
-    mutation_probability = 0.01
+    mutation_probability = 0
     roulette_best_individuals = []
     all_cost_function_data = []
 
