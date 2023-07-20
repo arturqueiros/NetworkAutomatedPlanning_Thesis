@@ -391,9 +391,10 @@ def read_stopTypes():
     return types
 
 
-def create_population(size_population: int, stop_types: list[str]):
+def create_population(size_population: int, stop_types: list[str], existing_population: list[Individual]):
     # Generates the number os individuals according to the size of the population
-    active_station_dict = {}
+    individualsStops = [str(individual.get_individualStops) for individual in existing_population]
+    active_station_dict = dict.fromkeys(individualsStops, len(individualsStops))
     population = []
     i = 0
     while i < size_population:
@@ -623,7 +624,7 @@ def generations_creation(population_size: int, stop_Types: list[str], number_gen
                          tournament_data_file: Workbook, roulette_filename: str, tournament_filename: str):
     best_individuals = []
     elite_individuals = []
-    initial_population = create_population(population_size, stop_Types)
+    initial_population = create_population(population_size, stop_Types, [])
     computed_population = compute_population_data(initial_population)
     rank_individuals(computed_population)
     all_populations_data = []
@@ -691,7 +692,7 @@ def generations_creation(population_size: int, stop_Types: list[str], number_gen
 
 def fill_population(new_population: list[Individual], population_size: int, stop_Types: list[str]):
     this_population_size = population_size - len(new_population)
-    filling_population = create_population(this_population_size, stop_Types)
+    filling_population = create_population(this_population_size, stop_Types, new_population)
     filling_population = compute_population_data(filling_population)
     new_population = new_population + filling_population
 
@@ -918,7 +919,7 @@ if __name__ == "__main__":
     low_signal_ref = -85
     # This will be the initial size, the population after selection crossover and
     # mutation will have a random size based on the selection occurance
-    number_generations = 50
+    number_generations = 20
     population_size = 50
     crossover_probability = 0.8
     mutation_probability = 0.01
