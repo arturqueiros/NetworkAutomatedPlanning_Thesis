@@ -494,6 +494,9 @@ def tournament_selection(selection_population: list[Individual], eliteSize: int,
         # Add the winner to the parents list
         parents.append(winner)
 
+        # Remove the winner from the selection population
+        selection_population.remove(winner)
+
     # Append the elite individuals to the parents list
     parents.extend(elite)
 
@@ -552,7 +555,7 @@ def mutation(mutation_population: list[Individual], mutation_probability: float)
                 index_1 = random.randrange(len(individual.individualStops))
             if individual.individualStops[index_1] == 1:
                 individual.individualStops[index_1] = 0
-            else:
+            if individual.individualStops[index_1] == 0:
                 individual.individualStops[index_1] = 1
 
     return mutation_population
@@ -915,9 +918,9 @@ if __name__ == "__main__":
     low_signal_ref = -85
     # This will be the initial size, the population after selection crossover and
     # mutation will have a random size based on the selection occurance
-    number_generations = 25
-    population_size = 25
-    crossover_probability = 0.20
+    number_generations = 50
+    population_size = 50
+    crossover_probability = 0.8
     mutation_probability = 0.01
     roulette_best_individuals = []
     all_cost_function_data = []
