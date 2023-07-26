@@ -486,25 +486,28 @@ def tournament_selection(selection_population: list[Individual], eliteSize: int,
 
     selection_number = round(crossover_probability * len(selection_population))
     for _ in range(selection_number):
-        # Randomly select individuals for the tournament
-        tournament_individuals = random.sample(selection_population, 2)
+        if len(selection_population) > 1 :
+            # Randomly select individuals for the tournament
+            tournament_individuals = random.sample(selection_population, 2)
 
-        # Find the individual with the lowest cost function value in the tournament
-        winner = min(tournament_individuals, key=lambda x: x.value_cost_function)
+            # Find the individual with the lowest cost function value in the tournament
+            winner = min(tournament_individuals, key=lambda x: x.value_cost_function)
 
-        # Add the winner to the parents list
-        parents.append(winner)
+            # Add the winner to the parents list
+            parents.append(winner)
 
-        # Remove the winner from the selection population
-        selection_population.remove(winner)
-
+            # Remove the winner from the selection population
+            selection_population.remove(winner)
+        else:
+            winner = selection_population[0]
+            parents.append(winner)
     # Append the elite individuals to the parents list
     parents.extend(elite)
 
     return parents
 
 
-def crossover(parents: list[Individual]):
+def crossover(parents: list[Individual], crossover_probability: float):
     crossover_population = []
     random.shuffle(parents)
     parents_check = []
@@ -512,34 +515,35 @@ def crossover(parents: list[Individual]):
     # Count the number of pairs for crossover
     number_pairs = math.floor((len(parents) / 2))
 
-    # Get the size of a chromossome
-    chromossome_size = len(parents[0].individualStops)
+    if crossover_probability > 0:
+        # Get the size of a chromossome
+        chromossome_size = len(parents[0].individualStops)
 
-    for pair in range(number_pairs):
-        length = len(parents)
-        first_parent_index = random.randrange(0, length)
-        second_parent_index = random.randrange(0, length)
-        while first_parent_index == second_parent_index:
+        for pair in range(number_pairs):
+            length = len(parents)
+            first_parent_index = random.randrange(0, length)
             second_parent_index = random.randrange(0, length)
+            while first_parent_index == second_parent_index:
+                second_parent_index = random.randrange(0, length)
 
-        stop = round(chromossome_size / 2)
+            stop = round(chromossome_size / 2)
 
-        # Create child chromosomes by combining sections of the parents' chromosomes
-        first_parent = parents[first_parent_index]
-        second_parent = parents[second_parent_index]
-        first_child = Individual(list(first_parent.individualStops))
-        first_child.set_individualStops(first_parent.individualStops[0:stop] + second_parent.individualStops[stop:])
-        second_child = Individual(list(second_parent.individualStops))
-        second_child.set_individualStops(
-            second_parent.individualStops[0:stop] + first_parent.individualStops[stop:])
+            # Create child chromosomes by combining sections of the parents' chromosomes
+            first_parent = parents[first_parent_index]
+            second_parent = parents[second_parent_index]
+            first_child = Individual(list(first_parent.individualStops))
+            first_child.set_individualStops(first_parent.individualStops[0:stop] + second_parent.individualStops[stop:])
+            second_child = Individual(list(second_parent.individualStops))
+            second_child.set_individualStops(
+                second_parent.individualStops[0:stop] + first_parent.individualStops[stop:])
 
-        # Remove the parents from the pool
-        parents.remove(first_parent)
-        parents.remove(second_parent)
+            # Remove the parents from the pool
+            parents.remove(first_parent)
+            parents.remove(second_parent)
 
-        crossover_population.append(first_child)
-        crossover_population.append(second_child)
-        crossover_population = compute_population_data(crossover_population)
+            crossover_population.append(first_child)
+            crossover_population.append(second_child)
+            crossover_population = compute_population_data(crossover_population)
 
     return crossover_population
 
@@ -553,7 +557,6 @@ def mutation(mutation_population: list[Individual], mutation_probability: float)
         while rand_numb == 0:
             rand_numb = round(random.uniform(0, 1), 2)
         if rand_numb <= mutation_probability:
-            print("AQUI")
             index_1 = random.randrange(len(individual.individualStops))
             while individual.stopTypes[index_1] == 'Anchor':
                 index_1 = random.randrange(len(individual.individualStops))
@@ -650,7 +653,7 @@ def generations_creation(population_size: int, stop_Types: list[str], number_gen
             if number_elite < 0:
                 print("Elite can never be lower than 0!")
                 exit()
-            crossover_population = crossover(parents)
+            crossover_population = crossover(parents, crossover_probability)
             after_crossover_population = crossover_population + elite
             filled_population = fill_population(after_crossover_population, population_size, stop_Types)
             final_population = mutation(filled_population, mutation_probability)
@@ -922,10 +925,10 @@ if __name__ == "__main__":
     low_signal_ref = -85
     # This will be the initial size, the population after selection crossover and
     # mutation will have a random size based on the selection occurance
-    number_generations = 20
-    population_size = 50
-    crossover_probability = 0.8
-    mutation_probability = 0
+    number_generations = 25
+    population_size = 25
+    crossover_probability = 0.5
+    mutation_probability = 0.0
     roulette_best_individuals = []
     all_cost_function_data = []
 
