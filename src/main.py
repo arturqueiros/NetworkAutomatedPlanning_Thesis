@@ -382,12 +382,12 @@ def compute_extension_distance(point_first: float, point_last: float):
 
 def read_stopTypes():
     types = []
-    file_path_stopTypes = '../data/Cascais Elements.csv'
+    file_path_stopTypes = '../data/Cascais Elements_pks.csv'
     with open(file_path_stopTypes, 'r') as types_file:
         data_reader = csv.reader(types_file)
         next(data_reader)
         for row in data_reader:
-            types.append(row[1])
+            types.append(row[2])
     return types
 
 
@@ -448,27 +448,29 @@ def roulette_selection(selection_population: list[Individual], eliteSize: int, c
     cumulative_weights = [0]
     parents = []
     j = 0
-    elite_index = 0
-    elite = []
     selection_number = round(crossover_probability * population_size)
     for i in range(eliteSize):
         selection_population.remove(selection_population[i])
     for individual in selection_population:
         population_total_cost_val_sum += individual.value_cost_function
-        normalized_weights = individual.value_cost_function
-        cumulative_weights.append(cumulative_weights[j] + normalized_weights)
-        individual.individual_weight_percent = (cumulative_weights[j + 1] / population_total_cost_val_sum) * 100
+        weights = 1 / individual.value_cost_function
+        cumulative_weights.append(cumulative_weights[j] + weights)
+        #individual.individual_weight_percent = (cumulative_weights[j + 1] / population_total_cost_val_sum) * 100
         j += 1
     cumulative_weights.pop(0)
 
     max_value = max(cumulative_weights)
-    for count in range(selection_number):
+    count = 0
+    aux = [individual for individual in selection_population]
+    for _ in range(selection_number):
         random_number = random.uniform(0, max_value)
         for score in cumulative_weights:
             if random_number <= score:
-                parents.append(selection_population[count])
+                parents.append(aux[count])
+                selection_population.remove(selection_population[count])
                 cumulative_weights.remove(score)
                 break
+        count += 1
 
     return parents
 
@@ -566,63 +568,6 @@ def mutation(mutation_population: list[Individual], mutation_probability: float)
                 individual.individualStops[index_1] = 1
 
     return mutation_population
-
-
-"""
-def generations_creation(population_size: int, stop_Types: list[str], number_generations: int, eliteSize: int,
-                         crossover_probability: float, mutation_probability: float, data_file: Workbook):
-    best_individuals = []
-    elite_individuals = []
-    population = create_population(population_size, stop_Types)
-    computed_population = compute_population_data(population)
-    rank_individuals(computed_population)
-    all_populations_data = []
-    index = 0
-
-    for generation in range(number_generations):
-        print("Generation no:", generation)
-        number_elite = len(elite_individuals)
-        if number_elite == 0:
-            elite = get_elite(computed_population, eliteSize)
-            parents = roulette_selection(population, eliteSize, crossover_probability, population_size)
-
-        new_population_size = population_size - number_elite
-        if number_elite > 0:
-            elite = get_elite(final_population, eliteSize)
-            parents = roulette_selection(final_population, eliteSize, crossover_probability, population_size)
-        if number_elite < 0:
-            print("Elite can never be lower than 0!")
-            exit()
-        crossover_population = crossover(parents)
-        after_crossover_population = crossover_population + elite
-        # Checks the new_population size and if its lower than initial population size, fills the population with new random individuals
-        filled_population = fill_population(after_crossover_population, population_size, stop_Types)
-        # Generate a random number between 0 and 1 to see if the mutation will occur
-        final_population = mutation(filled_population, mutation_probability)
-        final_population = compute_population_data(final_population)
-        rank_individuals(final_population)
-        elite_individuals = get_elite(final_population, eliteSize)
-        best_individuals.append(final_population[0])
-        all_data(final_population, generation, data_file)
-        generation_data = []
-        for index in range(len(final_population)):
-            generation_data.append(final_population[index])
-        all_populations_data.append(generation_data)
-        parents = []
-        after_crossover_population = []
-        for ind in final_population:
-            plt.figure(generation + 1)
-            plt.plot(pk_values, ind.individual_coverage.max_coverages)
-            plt.xlim(0, max(pk_values))
-            plt.axhline(y=lim_min_coverage, color='r')
-            plt.axhline(y=low_signal_ref, color='y')
-            plt.xlabel("Distance (pk)")
-            plt.ylabel("Coverage (dBm)")
-            plt.title("Coverage Map Individual")
-            plt.show()
-        
-    return best_individuals, all_populations_data
-"""
 
 
 def generations_creation(population_size: int, stop_Types: list[str], number_generations: int, eliteSize: int,
@@ -925,10 +870,10 @@ if __name__ == "__main__":
     low_signal_ref = -85
     # This will be the initial size, the population after selection crossover and
     # mutation will have a random size based on the selection occurance
-    number_generations = 25
-    population_size = 25
+    number_generations = 10
+    population_size = 10
     crossover_probability = 0.5
-    mutation_probability = 0.0
+    mutation_probability = 0.01
     roulette_best_individuals = []
     all_cost_function_data = []
 
@@ -949,8 +894,6 @@ if __name__ == "__main__":
         generations_creation(population_size, stop_Types, number_generations, eliteSize, crossover_probability,
                              mutation_probability, workbook1, workbook3, filename1, filename3)
 
-    """x = list(itertools.chain.from_iterable([[i + 1] * len(row) for i, row in enumerate(roulette_all_population)]))
-    y = list(itertools.chain.from_iterable(all_cost_function_data))"""
     roulette_best_individual_cost_value = []
     tournament_best_individual_cost_value = []
     generation = []
