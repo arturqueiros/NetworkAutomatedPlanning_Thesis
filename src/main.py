@@ -129,10 +129,7 @@ class Individual:
         level_crossing = 0
         signal = 0
         other = 0
-        # weight_sum = self.weight_active_stations + self.weight_percent_below_min + self.weight_percent_low_ref + self.weight_extension
         total_stops = self.get_Number_Stops()
-
-        # num_activeStations = self.get_Number_Active_Stops() # TODO: refactor this method: stations active number can be accessed from within the class
 
         for index, stop in enumerate(self.individualStops):
             if stop:  # Check if stop is active
@@ -301,7 +298,6 @@ def processDataPoints(station_list: list[str], pks: list[KilometricPoint]):
     for pk in pks:
 
         max_coverage = -1200  # If a pk has all values missing
-        # np.max(pk.coverages[pk])
         for j, station in enumerate(station_list):  # Checks the highest coverage value
             if pk.coverages[j] is not None:
                 if station and pk.coverages[j] > max_coverage:  # Station is active
@@ -420,7 +416,6 @@ def compute_population_data(population: list[Individual]):
 
         percent_below_min = line_coverage.get_percent_below_min()
         percent_below_ref = line_coverage.get_percent_below_ref()
-        # percent_above_min = line_coverage.get_percent_above_min()
         max_coverages = line_coverage.get_max_coverages
 
         # Compute the consecutive max entension between the pk values below the minimum limit
@@ -455,7 +450,6 @@ def roulette_selection(selection_population: list[Individual], eliteSize: int, c
         population_total_cost_val_sum += individual.value_cost_function
         weights = 1 / individual.value_cost_function
         cumulative_weights.append(cumulative_weights[j] + weights)
-        #individual.individual_weight_percent = (cumulative_weights[j + 1] / population_total_cost_val_sum) * 100
         j += 1
     cumulative_weights.pop(0)
 
@@ -785,7 +779,6 @@ def results_data(roulette_best_individuals: list[Individual], tournament_best_in
         img1.height = 220  # Adjust the height of the image if needed
         worksheet2.add_image(img1, f'N{row}')
 
-        # worksheet.cell(row=row, column=14, value=cov_data_plot(k, best_individuals))
     worksheet4 = tournament_best_individuals_file[sheet_name2]
     # Loop for tournament method results
     for i, individual in enumerate(tournament_best_individuals):
@@ -827,21 +820,17 @@ def results_data(roulette_best_individuals: list[Individual], tournament_best_in
 
 
 def cov_data_plot(generation: int, best_individuals: list[Individual]):
-    # for generation in range(number_generations):
     pk_axis = best_individuals[generation].individual_pks
     coverage_axis_aux = best_individuals[generation].individual_coverage
     coverage_axis = coverage_axis_aux.get_max_coverages
     plt.figure()
-    # plt.figure(1)
     plt.plot(pk_axis, coverage_axis, color='black')
     plt.xlim(0, max(pk_values))
     plt.axhline(y=lim_min_coverage, color='r')
     plt.axhline(y=low_signal_ref, color='y')
     plt.xlabel("Distance (pk)")
     plt.ylabel("Coverage (dBm)")
-    # plt.title("Coverage Map Bad Individual")
     title = f"Coverage Map of the best individual of Generation number {generation + 1}"
-    # plt.show()
     plt.title(title)
 
 
